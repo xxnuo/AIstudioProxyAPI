@@ -1,0 +1,27 @@
+[Unit]
+Description=AIstudioProxyAPI Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/xxnuo/projects/AIstudioProxyAPI
+ExecStart=/home/xxnuo/.local/bin/uv run launch_camoufox.py --headless
+ExecStartPost=/bin/bash -c 'until curl -s http://localhost:9090/version | grep -q "message"; do sleep 1; done'
+
+# 移除 ExecStop，让 systemd 自动向主进程发送 SIGTERM
+# 如果需要清理端口，可以添加：
+ExecStopPost=/bin/bash -c '\
+    if lsof -i :3120 > /dev/null 2>&1; then \
+        echo "Cleaning up port 3120"; \
+        lsof -ti :3120 | xargs kill -9 2>/dev/null || true; \
+    fi'
+
+TimeoutStopSec=30
+TimeoutStartSec=120
+KillMode=control-group  # 或使用 control-group 杀掉所有子进程
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
